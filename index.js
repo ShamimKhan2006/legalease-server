@@ -28,7 +28,9 @@ async function run() {
     const lawyersColl= database.collection("laywersData");
     const topLawyers=database.collection("topLawyers")
     
-
+     app.get('/', (req, res) => {
+  res.send('Hello World!')
+})
 
       app.get("/lawyers",async (req,res)=>{
         const query=req.query
@@ -50,6 +52,17 @@ async function run() {
     res.send(result)
    })
 
+   app.get("/lawyers",async(req,res)=>{
+    const category=req.query.category
+    const query={}
+
+    if(category){
+     query.specialization = { $regex: category, $options: "i" };
+    }
+
+    const result=await lawyersColl.find(query).toArray()
+    res.send(result)
+   })
 
    app.get("/lawyers/:id",async (req,res)=>{
     const {id}=req.params
