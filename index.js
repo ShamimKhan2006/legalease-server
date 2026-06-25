@@ -129,7 +129,7 @@ async function run() {
     const transactionsColl = database.collection("transactions");
 
     app.get('/', (req, res) => {
-      res.send('LegalEase Server is Running!');
+      res.send('LegalEase Server is Running!!!');
     });
 
     // ==========================================
