@@ -179,12 +179,19 @@ app.post("/reviews", async (req, res) => {
     res.send(result);
 });
 
-// রিভিউগুলো দেখার জন্য
-app.get("/reviews/:lawyerId", async (req, res) => {
-    const lawyerId = req.params.lawyerId;
-    const reviews = await commentsColl.find({ lawyerId }).toArray();
-    res.send(reviews);
+  app.get("/reviews/:lawyerId", async (req, res) => {
+  const lawyerId = req.params.lawyerId;
+  const reviews = await commentsColl.find({ lawyerId }).toArray();
+  res.send(reviews);
 });
+
+
+// রিভিউগুলো দেখার জন্য
+// app.get("/reviews/:lawyerId", async (req, res) => {
+//     const lawyerId = req.params.lawyerId;
+//     const reviews = await commentsColl.find({ lawyerId })
+//     res.send(reviews);
+// });
      
 //     app.get("/lawyers/:id", async (req, res) => {
 //   try {
@@ -351,33 +358,99 @@ app.delete("/services/:id", async (req, res) => {
       res.send(result);
     });
       
+app.post("/hirings", async (req, res) => {
+  const { lawyerId, clientName, clientEmail, status, hiringDate } = req.body;
 
-    // ==========================================
+  // lawyerEmail দরকার কারণ hiring-requests?email দিয়ে filter হয়
+  const lawyer = await lawyersColl.findOne({ _id: new ObjectId(lawyerId) });
+
+  const result = await hiringsColl.insertOne({
+    lawyerId,
+    lawyerEmail: lawyer.email,  // এটা ছাড়া lawyer কিছুই দেখবে না
+    clientName,
+    clientEmail,
+    status,
+    hiringDate: new Date(hiringDate),
+  });
+
+  res.json(result);
+});
+
+    // Express route
+app.post("/create-checkout-session", async (req, res) => {
+  const { amount, hireId, lawyerName, userEmail } = req.body;
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ["card"],
+    line_items: [{ price_data: { currency: "bdt", product_data: { name: `Fee: ${lawyerName}` }, unit_amount: amount * 100 }, quantity: 1 }],
+    mode: "payment",
+    success_url: `${YOUR_FRONTEND_URL}/payment-success?hireId=${hireId}`,
+    cancel_url: `${YOUR_FRONTEND_URL}/hiring-history`,
+    customer_email: userEmail,
+  });
+  res.json({ sessionId: session.id });
+});
+    
+
+
+// Express backend
+app.post("/hirings", async (req, res) => {
+  const { lawyerId, status, userEmail } = req.body;
+
+  // লয়ারের তথ্য নিন
+  const lawyer = await lawyersColl.findOne({ _id: new ObjectId(lawyerId) });
+
+  const hiringDoc = {
+    lawyerId,
+    lawyerEmail: lawyer.email,   // লয়ারের email (hiring-requests filter করতে লাগবে)
+    lawyerName: lawyer.name,
+    userEmail: userEmail || "unknown",
+    status: status || "pending_payment",
+    createdAt: new Date(),
+  };
+
+  const result = await hiringsColl.insertOne(hiringDoc);
+  res.json(result);
+});
+
+
+
+
+
+
+
+
+// ==========================================
     // ৫. ADMIN DASHBOARD API
     // ==========================================
     
+
+
+
+
     // সব ইউজারের লিস্ট দেখা
-    app.get("/admin/users", async (req, res) => {
-      const result = await usersColl.find({}).toArray();
-      res.send(result);
-    });
+    // GET all users
+app.get("/admin/users", async (req, res) => {
+  const result = await usersColl.find({}).toArray();
+  res.send(result);
+});
 
-    // রোল চেঞ্জ করা এবং ইউজার ডিলিট করা
-    app.patch("/admin/change-role/:id", async (req, res) => {
-      const { id } = req.params;
-      const { role } = req.body;
-      const result = await usersColl.updateOne(
-        { _id: new ObjectId(id) },
-        { $set: { role: role } }
-      );
-      res.send(result);
-    });
+// PATCH - role change
+app.patch("/admin/change-role/:id", async (req, res) => {
+  const { id } = req.params;
+  const { role } = req.body;
+  const result = await usersColl.updateOne(
+    { _id: new ObjectId(id) },
+    { $set: { role } }
+  );
+  res.send(result);
+});
 
-    app.delete("/admin/users/:id", async (req, res) => {
-      const { id } = req.params;
-      const result = await usersColl.deleteOne({ _id: new ObjectId(id) });
-      res.send(result);
-    });
+// DELETE - user delete ✅
+app.delete("/admin/users/:id", async (req, res) => {
+  const { id } = req.params;
+  const result = await usersColl.deleteOne({ _id: new ObjectId(id) });
+  res.send(result);
+});
 
     // সব ট্রানজেকশন দেখা
     app.get("/admin/all-transactions", async (req, res) => {
@@ -404,33 +477,56 @@ app.delete("/services/:id", async (req, res) => {
     // ==========================================
     // STRIPE & TRANSACTION SIMULATION
     // ==========================================
-    app.post("/payments/success", async (req, res) => {
-      const { transactionId, userEmail, lawyerEmail, amount, hiringId } = req.body;
+//     app.post("/payments/success", async (req, res) => {
+//       const { transactionId, userEmail, lawyerEmail, amount, hiringId } = req.body;
       
-      // ১. ট্রানজেকশন কালেকশনে ডেটা সেভ
-      await transactionsColl.insertOne({
-        transactionId, userEmail, lawyerEmail, amount, date: new Date()
-      });
+//       // ১. ট্রানজেকশন কালেকশনে ডেটা সেভ
+//       await transactionsColl.insertOne({
+//         transactionId, userEmail, lawyerEmail, amount, date: new Date()
+//       });
 
-      // ২. hiring কালেকশনের paymentStatus 'paid' করে দেওয়া
-      await hiringsColl.updateOne(
-        { _id: new ObjectId(hiringId) },
-        { $set: { paymentStatus: "paid" } }
-      );
+//       // ২. hiring কালেকশনের paymentStatus 'paid' করে দেওয়া
+//       await hiringsColl.updateOne(
+//         { _id: new ObjectId(hiringId) },
+//         { $set: { paymentStatus: "paid" } }
+//       );
 
-      res.send({ success: true, message: "Payment processed successfully" });
-    });
+//       res.send({ success: true, message: "Payment processed successfully" });
+//     });
 
-        app.post("/transactions", async (req, res) => {
-  const transaction = req.body;
+//         app.post("/transactions", async (req, res) => {
+//   const transaction = req.body;
 
-  const result =
-    await transactionsColl.insertOne(
-      transaction
+//   const result =
+//     await transactionsColl.insertOne(
+//       transaction
+//     );
+
+//   res.send(result);
+// });
+
+// পেমেন্ট সাকসেস হ্যান্ডেলার
+app.post("/payments/success", async (req, res) => {
+  const { hiringId, status } = req.body;
+
+  try {
+    // hiring কালেকশনের paymentStatus এবং status আপডেট করা
+    const result = await hiringsColl.updateOne(
+      { _id: new ObjectId(hiringId) },
+      { 
+        $set: { 
+          paymentStatus: "paid",
+          status: "confirmed" // পেমেন্ট হলে অ্যাপয়েন্টমেন্ট কনফার্মড
+        } 
+      }
     );
 
-  res.send(result);
+    res.send({ success: true, result });
+  } catch (error) {
+    res.status(500).send({ message: "Failed to update status" });
+  }
 });
+
     // সার্ভার লিসেনিং এবং পিং টেস্ট
     app.listen(port, () => {
       console.log(`Server running on port ${port}`);
