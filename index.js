@@ -104,6 +104,33 @@ app.use(express.json());
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = process.env.MONGODB_URL;
+const { createRemoteJWKSet, jwtVerify } = require("jose-node-cjs-runtime");
+const JWKS = createRemoteJWKSet(new URL(`${process.env.JWKS_URL}/api/auth/jwks`));
+
+// ================= AUTH MIDDLEWARE =================
+const verifyToken = async (req, res, next) => {
+  try {
+    const authHeaders = req?.headers.authorization;
+
+    if (!authHeaders) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const token = authHeaders.split(" ")[1];
+    console.log("token",token)
+
+    if (!token) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { payload } = await jwtVerify(token, JWKS);
+
+    req.payload = payload;
+    next();
+  } catch (error) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+};
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -358,23 +385,7 @@ app.delete("/services/:id", async (req, res) => {
       res.send(result);
     });
       
-app.post("/hirings", async (req, res) => {
-  const { lawyerId, clientName, clientEmail, status, hiringDate } = req.body;
 
-  // lawyerEmail দরকার কারণ hiring-requests?email দিয়ে filter হয়
-  const lawyer = await lawyersColl.findOne({ _id: new ObjectId(lawyerId) });
-
-  const result = await hiringsColl.insertOne({
-    lawyerId,
-    lawyerEmail: lawyer.email,  // এটা ছাড়া lawyer কিছুই দেখবে না
-    clientName,
-    clientEmail,
-    status,
-    hiringDate: new Date(hiringDate),
-  });
-
-  res.json(result);
-});
 
     // Express route
 app.post("/create-checkout-session", async (req, res) => {
