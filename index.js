@@ -99,7 +99,7 @@ require('dotenv').config();
 const app = express();
 const port = 8000;
 
-app.use(cors());
+app.use(cors({origin:"*"}));
 app.use(express.json());
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -142,7 +142,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
     const database = client.db("legalease");
 
     // আপনার আগের কালেকশন সমূহ
@@ -543,7 +543,7 @@ app.post("/payments/success", async (req, res) => {
       console.log(`Server running on port ${port}`);
     });
 
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // client.close() বন্ধ রাখা হলো কারণ সার্ভার রানিং থাকবে
