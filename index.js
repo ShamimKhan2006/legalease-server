@@ -150,7 +150,7 @@ async function run() {
     const topLawyers = database.collection("topLawyers");
 
     // নতুন ড্যাশবোর্ডের জন্য প্রয়োজনীয় কালেকশন সমূহ
-    const usersColl = database.collection("users");
+    const usersColl = database.collection("user");
     const hiringsColl = database.collection("hirings");
     const commentsColl = database.collection("comments");
     const transactionsColl = database.collection("transactions");
@@ -544,7 +544,7 @@ app.post("/payments/success", async (req, res) => {
     });
 
     // await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    console.log("Pinged your deployment. You successfully connected to MongoDB!!!");
   } finally {
     // client.close() বন্ধ রাখা হলো কারণ সার্ভার রানিং থাকবে
   }
