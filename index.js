@@ -223,7 +223,7 @@ lawyerFee: lawyer?.hourlyRate || 0, paymentStatus: "unpaid", hiringDate: new Dat
     // ==========================================
     // ৮. ADMIN DASHBOARD
     // ==========================================
-    app.get("/admin/users", verifyToken, async (req, res) => {
+    app.get("/admin/users",  async (req, res) => {
       const result = await usersColl.find({}).toArray();
       res.send(result);
     });
@@ -236,7 +236,7 @@ lawyerFee: lawyer?.hourlyRate || 0, paymentStatus: "unpaid", hiringDate: new Dat
       res.send(result);
     });
 
-    app.delete("/admin/users/:id", verifyToken,async (req, res) => {
+    app.delete("/admin/users/:id",async (req, res) => {
       const result = await usersColl.deleteOne({ _id: new ObjectId(req.params.id) });
       res.send(result);
     });
